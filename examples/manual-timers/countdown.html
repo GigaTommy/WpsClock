@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>演讲倒计时 · 离线版</title>
+<style>
+:root{color-scheme:dark;font-family:"Microsoft YaHei",system-ui,sans-serif;background:#0c1423;color:#edf3ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}
+main{width:min(720px,100%);text-align:center}header{color:#94a3b8;letter-spacing:.18em;font-size:14px}
+h1{font-size:26px;margin:12px 0 24px}.clock{--accent:#6ee7b7;border:2px solid #263650;border-radius:28px;padding:28px 20px;background:#131f32}
+.clock.warn{--accent:#fbbf24}.clock.done{--accent:#fb7185}#time{font:700 clamp(58px,16vw,132px)/1.2 Consolas,monospace;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
+#status{min-height:26px;color:var(--accent);margin:12px 0 22px}.track{height:7px;background:#273650;border-radius:9px;overflow:hidden}#bar{height:100%;background:var(--accent);width:100%;transition:width .2s linear}
+.pulse{animation:glow 1.4s ease-in-out 4}.pulse #time{animation:breathe 1.4s ease-in-out 4}
+@keyframes glow{50%{border-color:var(--accent);box-shadow:0 0 32px -8px var(--accent)}}@keyframes breathe{50%{transform:scale(1.025)}}
+.settings,.options,.actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:14px;margin-top:22px}.settings label{color:#b3c0d5;font-size:14px}input[type=number]{width:86px;padding:9px;border:1px solid #3d4e69;border-radius:8px;background:#172439;color:white;margin:0 6px;font:inherit}
+button{background:#243650;color:white;border:1px solid #3d4e69;padding:12px 22px;border-radius:11px;cursor:pointer;font:inherit}button:hover{filter:brightness(1.2)}button:focus-visible,input:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}#start{background:#6ee7b7;color:#10251e;font-weight:700;border-color:transparent;min-width:125px}.options{font-size:14px;color:#afbdd1}.options button{padding:6px 12px;font-size:13px}footer{color:#8394ae;font-size:12px;line-height:1.9;margin-top:24px}#error{color:#fda4af;min-height:20px;font-size:14px;margin-top:12px}.compact header,.compact h1,.compact .settings,.compact .options,.compact footer{display:none}body.compact{padding:12px}.compact main{max-width:900px}
+@media(prefers-reduced-motion:reduce){.pulse,.pulse #time{animation:none}.pulse{border-color:var(--accent)}}
+</style>
+</head>
+<body>
+<main>
+<header>OFFLINE PRESENTATION TIMER</header><h1>演讲倒计时</h1>
+<section class="clock" id="clock" aria-label="倒计时">
+<div id="time" role="timer" aria-live="off">10:00</div>
+<div id="status" role="status">准备好后，点击开始</div>
+<div class="track"><div id="bar"></div></div>
+</section>
+<div class="settings">
+<label>时长<input id="minutes" type="number" min="0.016667" max="1440" step="any" value="10">分钟</label>
+<label>提前<input id="warning" type="number" min="0" step="1" value="60">秒提醒</label>
+</div>
+<div class="options"><label><input id="sound" type="checkbox" checked> 提示音</label><button id="test">试听提示音</button><span>提醒填 0 可关闭临近提醒</span></div>
+<div id="error" role="alert"></div>
+<div class="actions"><button id="start">开始</button><button id="reset">重置</button><button id="compact">精简显示</button><button id="fullscreen">全屏</button></div>
+<footer>空格：开始 / 暂停 · R：重置 · F：全屏<br>完全离线，无需安装。使用前请试听，并保持电脑唤醒、浏览器声音开启。<br>手动启动计时；浏览器窗口不支持强制置顶于 WPS 放映之上。</footer>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let total=600, remaining=600, warning=60, deadline=0, running=false, started=false, warned=false, finished=false;
+let audio=null, wakeLock=null, animationTimeout=null;
+function settings(){
+  const m=Number($('minutes').value), w=Number($('warning').value);
+  const t=Math.round(m*60);
+  if(!$('minutes').value.trim() || !$('warning').value.trim() || !Number.isFinite(m) || t<1 || m>1440 || !Number.isInteger(w) || w<0 || w>=t){
+    $('error').textContent='请输入 1 秒至 1440 分钟的时长；提醒秒数必须为小于总时长的非负整数。';return false;
+  }
+  $('error').textContent='';total=t;remaining=t;warning=w;return true;
+}
+function initAudio(){
+  try{if(!audio) audio=new (window.AudioContext||window.webkitAudioContext)();
+    if(audio.state==='suspended') audio.resume().catch(()=>{$('error').textContent='声音未启用，请点击试听提示音。';});
+  }catch(e){$('error').textContent='当前浏览器无法播放提示音，请使用 Microsoft Edge。';}
+}
+function beep(final=false){
+  if(!$('sound').checked)return;
+  initAudio();if(!audio)return;
+  const notes=final?[[880,.22],[880,.22],[1175,.45]]:[[880,.18],[1100,.26]];
+  let at=audio.currentTime+.06;
+  notes.forEach(([hz,duration])=>{
+    const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=hz;
+    gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.28,at+.015);
+    gain.gain.setValueAtTime(.28,at+duration-.04);gain.gain.linearRampToValueAtTime(0,at+duration);
+    osc.connect(gain);gain.connect(audio.destination);osc.start(at);osc.stop(at+duration+.02);
+    osc.onended=()=>{osc.disconnect();gain.disconnect();};at+=duration+.12;
+  });
+}
+async function keepAwake(){
+  if(!('wakeLock' in navigator)||!running||document.visibilityState!=='visible')return;
+  try{const lock=await navigator.wakeLock.request('screen');if(!running){await lock.release();return;}wakeLock=lock;}catch(e){}
+}
+function releaseAwake(){if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;}}
+function alertTimer(final){
+  $('status').textContent=final?'时间到！':'即将结束，请注意时间';
+  clearTimeout(animationTimeout);$('clock').classList.remove('pulse');void $('clock').offsetWidth;$('clock').classList.add('pulse');
+  animationTimeout=setTimeout(()=>$('clock').classList.remove('pulse'),5700);beep(final);
+}
+function render(){
+  const seconds=Math.max(0,Math.ceil(remaining));
+  $('time').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+  $('bar').style.width=(Math.max(0,remaining)/total*100)+'%';
+  $('clock').classList.toggle('warn',warned&&!finished);$('clock').classList.toggle('done',finished);
+  document.title=$('time').textContent+' · 演讲倒计时';
+}
+function tick(){
+  if(running){
+    remaining=Math.max(0,(deadline-performance.now())/1000);
+    if(remaining<=0){running=false;finished=true;$('start').textContent='再来一次';alertTimer(true);releaseAwake();}
+    else if(warning>0 && remaining<=warning && !warned){warned=true;alertTimer(false);}
+  }render();
+}
+function reset(){
+  if(!settings())return false;
+  running=false;started=false;warned=false;finished=false;releaseAwake();
+  $('minutes').disabled=false;$('warning').disabled=false;$('start').textContent='开始';
+  $('status').textContent='已重置，准备好后点击开始';clearTimeout(animationTimeout);$('clock').classList.remove('pulse');render();return true;
+}
+function toggle(){
+  if(running){tick();if(finished)return;running=false;releaseAwake();$('start').textContent='继续';$('status').textContent='已暂停';return;}
+  if(finished&&!reset())return;
+  if(!started){if(!settings())return;started=true;$('minutes').disabled=true;$('warning').disabled=true;}
+  if($('sound').checked)initAudio();deadline=performance.now()+remaining*1000;running=true;
+  $('start').textContent='暂停';$('status').textContent=warned?'即将结束，请注意时间':'倒计时进行中';keepAwake();tick();
+}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('error').textContent='请按 F11，或通过浏览器菜单进入全屏。';}}
+$('start').onclick=toggle;$('reset').onclick=reset;$('test').onclick=()=>{if(!$('sound').checked){$('error').textContent='请先勾选“提示音”再试听。';return;}$('error').textContent='';beep();};
+$('compact').onclick=()=>{document.body.classList.toggle('compact');$('compact').textContent=document.body.classList.contains('compact')?'完整显示':'精简显示';};
+$('fullscreen').onclick=fullscreen;document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'退出全屏':'全屏';});
+document.addEventListener('keydown',e=>{if(/INPUT|BUTTON|SELECT|TEXTAREA/.test(e.target.tagName)||e.repeat)return;if(e.code==='Space'){e.preventDefault();toggle();}else if(e.key.toLowerCase()==='r')reset();else if(e.key.toLowerCase()==='f')fullscreen();});
+document.addEventListener('visibilitychange',()=>{tick();if(document.visibilityState==='visible')keepAwake();});
+window.addEventListener('beforeunload',e=>{if(running){e.preventDefault();e.returnValue='';}});
+setInterval(tick,100);render();
+</script>
+</body>
+</html>

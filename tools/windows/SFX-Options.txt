@@ -1,0 +1,6 @@
+; WinRAR GUI SFX options. Do not enable TempMode: settings should survive exit.
+Path=%LOCALAPPDATA%\WpsClockPortable
+Setup=WpsClock.exe
+Silent=1
+Overwrite=1
+Title=WpsClock Portable

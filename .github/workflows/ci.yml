@@ -1,0 +1,54 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Keep temporary files inside ignored output
+        shell: bash
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.local/agent/tmp/ci"
+          for variable in TMPDIR TMP TEMP; do
+            echo "$variable=$GITHUB_WORKSPACE/.local/agent/tmp/ci" >> "$GITHUB_ENV"
+          done
+      - name: Repository preflight
+        run: python3 -B tools/check_repository.py
+      - name: Text package integrity
+        run: python3 -B -m unittest discover -s tools/text-build -p 'test_text_pack.py' -v
+
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Keep temporary files inside ignored output
+        shell: pwsh
+        run: |
+          $temporary = Join-Path $env:GITHUB_WORKSPACE '.local/agent/tmp/ci'
+          New-Item -ItemType Directory -Force -Path $temporary | Out-Null
+          foreach ($variable in @('TMPDIR', 'TMP', 'TEMP')) {
+            "$variable=$temporary" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+      - name: Build Windows application
+        shell: cmd
+        run: call apps\windows\Build.cmd
+      - name: Windows logic regression
+        shell: cmd
+        run: call tests\windows\RunTests.cmd
+      - name: PowerShell bootstrap validation
+        shell: pwsh
+        run: python -B tools/text-build/test_bootstrap.py
