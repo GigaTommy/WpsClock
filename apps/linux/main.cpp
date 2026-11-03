@@ -242,11 +242,8 @@ class Controller : public QObject {
             if(!session.manualDuration)matchStatus.recognized(w.match.explanation);
             if(!config.syncScreens&&old!=showBounds)QTimer::singleShot(0,this,[this]{buildPanels();});
         }else {selected=0;if(!session.clock.active)matchStatus.waiting();}
-        if(!preview){
-            bool wasHeld=session.held;
-            session.observe(now(),o);
-            if(!wasHeld&&session.held)audio.stop();
-        }
+        // Retire previous alerts on automatic starts, stops and background holds.
+        if(!preview&&session.observe(now(),o)!=Session::Change::Unchanged)audio.stop();
     }
     void updatePanels(){
         bool trayAvailable=QSystemTrayIcon::isSystemTrayAvailable();

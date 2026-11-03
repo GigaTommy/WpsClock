@@ -29,6 +29,14 @@ int main(int argc,char **argv){
     m=matchTitle(c,"发言A.pptx [只读] - WPS Office");check(m.matched,"read only annotation");
     r.file="/other/发言A.pptx";r.seconds=300;c.rules.append(r);
     m=matchTitle(c,"发言A.pptx - WPS 演示");check(m.ambiguous&&!m.matched&&m.seconds==480,"duplicate filename fallback");
+    m=matchTitle(c,"发言A - WPS 演示");
+    check(m.ambiguous&&!m.matched&&m.file=="发言A.pptx"&&m.seconds==480&&!m.background,"hidden extension retains a shared filename without choosing a rule");
+    Session session;Observation previous;previous.present=true;previous.window="100";previous.file="Previous.pptx";previous.seconds=120;
+    session.observe(0,previous);session.observe(.4,previous);auto next=previous;next.file=bytes(m.file);next.seconds=m.seconds;next.ambiguous=m.ambiguous;next.matched=m.matched;
+    session.observe(1,next);auto change=session.observe(1.4,next);
+    check(change==Session::Change::Started&&session.file==bytes(m.file)&&session.clock.duration==480&&session.clock.elapsed(1.4)==0,"ambiguous hidden-extension title starts a fresh default session");
+    Config mixed=c;Rule pdf=r;pdf.file="/meetings/发言A.pdf";mixed.rules.append(pdf);m=matchTitle(mixed,"发言A - WPS 演示");
+    check(m.ambiguous&&!m.matched&&m.file.isEmpty()&&m.seconds==480,"shared stem across different extensions never guesses a filename");
     m=matchTitle(c,QString(),"/other/发言A.pptx");check(m.matched&&m.seconds==300,"exact full path");
     m=matchTitle(c,QString(),"/unknown/发言A.pptx");check(!m.matched,"known different full path never matches");
     r.file="Theme.pptx";r.background=true;c.rules.append(r);
