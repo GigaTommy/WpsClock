@@ -18,6 +18,9 @@ htmlcov/
 
 # Local application settings contain document names and absolute paths
 WpsClock.settings.xml*
+# Linux runtime configuration (contains document paths and file rules)
+settings.json
+instance.lock
 .wpsclock-write-*
 *.user
 *.suo

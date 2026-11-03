@@ -88,7 +88,7 @@ def main():
             errors.append('VERSION: does not match application display or expected x.y.z format')
     probes = ('.local/agent/backups/check.txt', '.env', '.env.production', '.npmrc', '.netrc', 'credentials.json',
               'client_secret_test.json', 'private.pem', 'WpsClock.settings.xml',
-              'apps/windows/WpsClock.settings.xml.tmp', 'build.log', 'example.pptx',
+              'apps/windows/WpsClock.settings.xml.tmp', 'apps/linux/settings.json', 'instance.lock', 'build.log', 'example.pptx',
               'release.zip', 'apps/windows/bin/app.exe', 'examples/__pycache__/x.pyc')
     for probe in probes:
         result = subprocess.run(['git', '-C', str(ROOT), 'check-ignore', '-q', '--no-index', probe])

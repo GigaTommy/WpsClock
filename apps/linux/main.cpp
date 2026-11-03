@@ -238,7 +238,11 @@ class Controller : public QObject {
             if(!session.manualDuration)matchStatus=w.match.explanation;
             if(!config.syncScreens&&old!=showBounds)QTimer::singleShot(0,this,[this]{buildPanels();});
         }else {selected=0;if(!session.clock.active)matchStatus="等待 WPS 放映";}
-        if(!preview)session.observe(now(),o);
+        if(!preview){
+            bool wasHeld=session.held;
+            session.observe(now(),o);
+            if(!wasHeld&&session.held)audio.stop();
+        }
     }
     void updatePanels(){
         bool trayAvailable=QSystemTrayIcon::isSystemTrayAvailable();

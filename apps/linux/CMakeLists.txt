@@ -19,3 +19,8 @@ add_executable(x11-tests ../../tests/linux/x11_tests.cpp x11probe.cpp)
 target_include_directories(x11-tests PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(x11-tests PRIVATE Qt5::Core Qt5::Gui ${X11_LIBRARIES} ${X11_Xext_LIB})
 # Run x11-tests in a 1280x800 Xvfb + window-manager session with xdotool installed.
+option(WPSCLOCK_X11_TESTS "Register tests for an isolated X11 desktop" OFF)
+if(WPSCLOCK_X11_TESTS)
+    add_test(NAME x11 COMMAND x11-tests)
+    set_tests_properties(x11 PROPERTIES TIMEOUT 60)
+endif()
