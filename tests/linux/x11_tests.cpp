@@ -11,6 +11,11 @@ using namespace wpsclock;
 static int count=0;
 static void check(bool ok,const char *label){if(!ok){std::cerr<<"FAIL "<<label<<'\n';std::exit(1);}++count;}
 static void settle(){QThread::msleep(250);}
+template<typename Predicate> static bool waitUntil(Predicate ready){
+    QElapsedTimer elapsed;elapsed.start();
+    do {if(ready())return true;QThread::msleep(20);}while(elapsed.elapsed()<5000);
+    return false;
+}
 int main(int argc,char **argv){
     QCoreApplication app(argc,argv);Display *d=XOpenDisplay(nullptr);check(d!=nullptr,"X display");auto root=DefaultRootWindow(d);
     auto atom=[&](const char *s){return XInternAtom(d,s,False);};
@@ -20,7 +25,18 @@ int main(int argc,char **argv){
         XChangeProperty(d,w,atom("_NET_WM_NAME"),atom("UTF8_STRING"),8,PropModeReplace,reinterpret_cast<const unsigned char*>(name),int(strlen(name)));
         unsigned long pid=getpid()+10000;XChangeProperty(d,w,atom("_NET_WM_PID"),XA_CARDINAL,32,PropModeReplace,reinterpret_cast<unsigned char*>(&pid),1);
         if(full){Atom state=atom("_NET_WM_STATE_FULLSCREEN");XChangeProperty(d,w,atom("_NET_WM_STATE"),XA_ATOM,32,PropModeReplace,reinterpret_cast<unsigned char*>(&state),1);}
-        XMapWindow(d,w);XSync(d,False);settle();return w;
+        XMapWindow(d,w);XSync(d,False);
+        // The window manager updates its client list on a separate connection.
+        // Wait for registration instead of assuming a fixed scheduler delay.
+        check(waitUntil([&]{
+            Atom actual=0;int format=0;unsigned long count=0,left=0;unsigned char *data=nullptr;bool found=false;
+            if(XGetWindowProperty(d,root,atom("_NET_CLIENT_LIST"),0,4096,False,XA_WINDOW,&actual,&format,&count,&left,&data)==0&&actual==XA_WINDOW&&format==32){
+                auto ids=reinterpret_cast<unsigned long*>(data);for(unsigned long i=0;i<count;++i)if(ids[i]==w)found=true;
+            }
+            if(data)XFree(data);
+            XWindowAttributes attrs={};return found&&XGetWindowAttributes(d,w,&attrs)&&attrs.map_state==IsViewable;
+        }),"window manager registers mapped fixture");
+        return w;
     };
     X11Probe probe;check(probe.available(),"probe connected");Config c;Rule a;a.file="A.pptx";a.seconds=120;c.rules.append(a);
     auto editor=create("A.pptx - WPS 演示","wpp",false);
@@ -28,10 +44,13 @@ int main(int argc,char **argv){
     auto browser=create("A.pptx - Browser","browser",true);windows=probe.scan(c,{QRect(0,0,1280,800)});check(windows.size()==1,"other fullscreen application excluded");
     XDestroyWindow(d,browser);XSync(d,False);settle();
     auto show=create("WPS Presentation Slide Show - [A.pptx]","wpp",true);windows=probe.scan(c,{QRect(0,0,1280,800)});
-    int index=selectShow(windows,0);check(index>=0&&windows[index].show&&windows[index].file=="A.pptx"&&windows[index].match.seconds==120,"fullscreen identified with rule");
+    int index=-1;
+    check(waitUntil([&]{windows=probe.scan(c,{QRect(0,0,1280,800)});index=selectShow(windows,0);return index>=0;}),"window manager applies fullscreen geometry");
+    check(index>=0&&windows[index].show&&windows[index].file=="A.pptx"&&windows[index].match.seconds==120,"fullscreen identified with rule");
     auto retained=windows[index].id;check(selectShow(windows,retained)>=0,"retain existing show");
-    probe.top(show,true);XSync(d,False);settle();int rectangles=-1,ordering=0;auto *rects=XShapeGetRectangles(d,show,ShapeInput,&rectangles,&ordering);if(rects)XFree(rects);check(rectangles==0,"click-through input region empty");
-    probe.top(show,false);XSync(d,False);rects=XShapeGetRectangles(d,show,ShapeInput,&rectangles,&ordering);if(rects)XFree(rects);check(rectangles>0,"click-through can be unlocked");
+    auto inputRegion=[&]{int rectangles=-1,ordering=0;auto *rects=XShapeGetRectangles(d,show,ShapeInput,&rectangles,&ordering);if(rects)XFree(rects);return rectangles;};
+    probe.top(show,true);check(waitUntil([&]{return inputRegion()==0;}),"click-through input region empty");
+    probe.top(show,false);check(waitUntil([&]{return inputRegion()>0;}),"click-through can be unlocked");
     check(probe.hotkeys(3,4),"global shortcut registration");int pauses=0,resets=0;auto drain=[&]{settle();probe.drain([&](int action){if(action==1)++pauses;else ++resets;});};
     QProcess::execute("xdotool",{"keydown","F3"});drain();check(pauses==1,"F3 delivered globally");
     QProcess::execute("xdotool",{"keydown","F3"});drain();check(pauses==1,"held key does not toggle repeatedly");

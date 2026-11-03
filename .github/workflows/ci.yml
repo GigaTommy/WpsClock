@@ -65,6 +65,7 @@ jobs:
             done
             if [ "$ready" != true ]; then cat "$TMPDIR/openbox.log"; exit 1; fi
             ctest --test-dir .local/linux-build --output-on-failure
+            ctest --test-dir .local/linux-build -R "^x11$" --repeat until-fail:5 --output-on-failure
           '
       - name: Verify portable packaging
         run: python3 -B tools/linux/package.py --binary .local/linux-build/WpsClock --out .local/agent/packages/linux-ci
