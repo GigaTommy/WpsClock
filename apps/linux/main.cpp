@@ -173,7 +173,8 @@ class Controller : public QObject {
     double lastScan=-1,lastRaise=-1;
     bool storageValid=true,preview=false;
     double previewAt=0;
-    QString matchStatus=ui("等待 WPS 放映"),notice;
+    MatchStatus matchStatus;
+    QString notice;
     double now() const{return monotonic.elapsed()/1000.0;}
     int resetSeconds() const {return session.file.empty()?config.duration:matchTitle(config,QString(),text(session.file)).seconds;}
     QString screenKey(QScreen *s) const {return s->name();}
@@ -218,7 +219,7 @@ class Controller : public QObject {
         auto *lock=menu.addAction(ui("锁定位置 / 点击穿透"));lock->setCheckable(true);lock->setChecked(config.locked);lock->setEnabled(QSystemTrayIcon::isSystemTrayAvailable());
         connect(lock,&QAction::triggered,this,[this](bool checked){config.locked=checked;save();for(auto *p:panels){p->config=config;probe.top(p->winId(),checked);}});
         auto *choose=menu.addMenu(ui("本场手动指定时长（保留已用时间）"));choose->setEnabled(session.clock.active&&!session.held);
-        for(const auto &r:config.rules)if(!r.background)choose->addAction(QFileInfo(r.file).fileName()+" · "+text(Clock::format(r.seconds)),this,[this,r]{session.choose(now(),r.seconds);matchStatus=ui("本场手动指定：")+QFileInfo(r.file).fileName();});
+        for(const auto &r:config.rules)if(!r.background)choose->addAction(QFileInfo(r.file).fileName()+" · "+text(Clock::format(r.seconds)),this,[this,r]{session.choose(now(),r.seconds);matchStatus.choose(r.file);});
         menu.addAction(ui("恢复右上角位置"),this,[this]{config.positions={};save();QTimer::singleShot(0,this,[this]{buildPanels();});});
         menu.addAction(ui("本地设置…"),this,[this]{QTimer::singleShot(0,this,[this]{openSettings();});});
         menu.addSeparator();menu.addAction(ui("退出"),qApp,&QApplication::quit);
@@ -238,9 +239,9 @@ class Controller : public QObject {
         QList<QRect> screens;for(auto *s:QGuiApplication::screens())screens<<s->geometry();
         windows=probe.scan(config,screens);int index=selectShow(windows,selected);Observation o;
         if(index>=0){const auto &w=windows[index];selected=w.id;QRect old=showBounds;showBounds=w.bounds;o.present=true;o.window=std::to_string(w.id);o.file=bytes(w.file);o.seconds=w.match.seconds;o.background=w.match.background;o.matched=w.match.matched;o.ambiguous=w.match.ambiguous;
-            if(!session.manualDuration)matchStatus=ui(w.match.explanation);
+            if(!session.manualDuration)matchStatus.recognized(w.match.explanation);
             if(!config.syncScreens&&old!=showBounds)QTimer::singleShot(0,this,[this]{buildPanels();});
-        }else {selected=0;if(!session.clock.active)matchStatus=ui("等待 WPS 放映");}
+        }else {selected=0;if(!session.clock.active)matchStatus.waiting();}
         if(!preview){
             bool wasHeld=session.held;
             session.observe(now(),o);
@@ -258,10 +259,10 @@ class Controller : public QObject {
             else if(session.held)p->status=ui("会议背景暂停");
             else if(!session.clock.active)p->status=ui("待命 · F")+QString::number(config.pauseKey)+ui(" 开始");
             else if(config.clockTime)p->status=QTime::currentTime().toString("HH:mm:ss");
-            else p->status=session.manual?ui("手动计时"):(session.manualDuration?ui("本场已指定时长"):matchStatus);
+            else p->status=session.manual?ui("手动计时"):(session.manualDuration?ui("本场已指定时长"):matchStatus.display());
             p->setToolTip(notice.isEmpty()?p->status:notice);p->setVisible(!hidden);p->update();
         }
-        if(dialog){QString s=ui("当前：")+(session.file.empty()?QString(ui("未识别文件")):text(session.file))+"\n"+matchStatus;if(!issue.isEmpty())s+="\n"+issue;if(!notice.isEmpty())s+="\n"+notice;dialog->setStatus(s);}
+        if(dialog){QString s=ui("当前：")+(session.file.empty()?QString(ui("未识别文件")):text(session.file))+"\n"+matchStatus.display();if(!issue.isEmpty())s+="\n"+issue;if(!notice.isEmpty())s+="\n"+notice;dialog->setStatus(s);}
     }
     void tick(){
         probe.drain([this](int action){preview=false;if(action==1){if(!(config.stopAtZero&&session.clock.ended))session.toggle(now(),config.duration);}else{audio.stop();session.reset(now(),resetSeconds());}});
