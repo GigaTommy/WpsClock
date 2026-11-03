@@ -63,8 +63,8 @@ Settings normally live under `~/.config/WpsClock/WpsClock-Kylin/`, respecting `X
 Without write permission, create a GitHub Fork first and substitute its clone URL below. Accepted collaborators may use the upstream repository directly.
 
 ```sh
-git clone https://github.com/GigaTommy/wpsbell.git
-cd wpsbell
+git clone https://github.com/GigaTommy/WpsClock.git
+cd WpsClock
 git switch -c feature/describe-change
 ```
 
@@ -127,7 +127,7 @@ git commit -m "docs: describe the change"
 git push -u origin HEAD
 ```
 
-Open a PR targeting `GigaTommy/wpsbell:main`. Fork users push to their own Fork. Main is protected; required checks must pass before merge. Also verify Linux CI for Linux changes. Do not push directly to or force-push main. Translation changes require regeneration; see [localization](docs/localization.md).
+Open a PR targeting `GigaTommy/WpsClock:main`. Fork users push to their own Fork. Main is protected; required checks must pass before merge. Also verify Linux CI for Linux changes. Do not push directly to or force-push main. Translation changes require regeneration; see [localization](docs/localization.md).
 
 ## Transfer source as text and rebuild internally
 

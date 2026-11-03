@@ -91,8 +91,8 @@ apps\windows\Build.cmd
 ### 1. 获取源码并创建开发分支
 
 ```sh
-git clone https://github.com/GigaTommy/wpsbell.git
-cd wpsbell
+git clone https://github.com/GigaTommy/WpsClock.git
+cd WpsClock
 git switch -c feature/describe-change
 ```
 
@@ -173,7 +173,7 @@ git commit -m "docs: describe the change"
 git push -u origin HEAD
 ```
 
-这里以 README 修改为例，代码修改应列出实际修改文件。向 `GigaTommy/wpsbell` 的 `main` 创建 PR；Fork 贡献者从自己的 Fork 发起 PR。`main` 受保护，修改须经 PR 合并，`repository` 和 `windows` 检查为必需项；涉及 Linux 的修改还应确认 `linux` 检查通过。不要直接推送或强制推送 `main`。
+这里以 README 修改为例，代码修改应列出实际修改文件。向 `GigaTommy/WpsClock` 的 `main` 创建 PR；Fork 贡献者从自己的 Fork 发起 PR。`main` 受保护，修改须经 PR 合并，`repository` 和 `windows` 检查为必需项；涉及 Linux 的修改还应确认 `linux` 检查通过。不要直接推送或强制推送 `main`。
 
 ## 通过文本传回内部并重新构建
 
