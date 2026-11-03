@@ -61,6 +61,7 @@ class SettingsDialog : public QDialog {
     }
 public:
     explicit SettingsDialog(const Config &config,Audio &audio,std::function<QString()> diagnostic,QWidget *parent=nullptr):QDialog(parent),draft(config),report(std::move(diagnostic)) {
+        setWindowFlag(Qt::WindowStaysOnTopHint);
         setWindowTitle(QString("WpsClock 麒麟版 · 设置 (%1)").arg(VERSION));resize(780,610);setMinimumSize(640,480);
         auto *layout=new QVBoxLayout(this);auto *tabs=new QTabWidget(this);layout->addWidget(tabs);
         auto *timing=new QWidget(tabs);auto *tl=new QVBoxLayout(timing);auto *tf=new QFormLayout;tl->addLayout(tf);
