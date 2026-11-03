@@ -32,7 +32,7 @@ X11Probe::X11Probe():p(new Impl){
     // One dedicated connection, used only on the Qt main thread. Expired windows are normal.
     XSetErrorHandler(xError);p->display=XOpenDisplay(nullptr);
     if(p->display){p->root=DefaultRootWindow(p->display);Bool supported=False;XkbSetDetectableAutoRepeat(p->display,True,&supported);}
-    else warning="X11 连接不可用：自动检测和全局快捷键不可用，请手动控制。";
+    else warning=ui("X11 连接不可用：自动检测和全局快捷键不可用，请手动控制。");
 }
 X11Probe::~X11Probe(){if(p->display){XUngrabKey(p->display,AnyKey,AnyModifier,p->root);XCloseDisplay(p->display);}delete p;}
 bool X11Probe::available() const {return p->display!=nullptr;}
@@ -93,11 +93,11 @@ bool X11Probe::hotkeys(int pause,int reset){
     auto mod=XGetModifierMapping(p->display);p->numMask=0;auto num=XKeysymToKeycode(p->display,XK_Num_Lock);
     if(mod){for(int i=0;i<8;++i)for(int j=0;j<mod->max_keypermod;++j)if(mod->modifiermap[i*mod->max_keypermod+j]==num)p->numMask|=1U<<i;XFreeModifiermap(mod);}
     int pc=XKeysymToKeycode(p->display,XK_F1+pause-1),rc=XKeysymToKeycode(p->display,XK_F1+reset-1);
-    if(!pc||!rc||pc==rc){warning="快捷键设置无效，请在设置中更换。";return false;}
+    if(!pc||!rc||pc==rc){warning=ui("快捷键设置无效，请在设置中更换。");return false;}
     lastXError=0;QSet<unsigned int> masks={0,LockMask,p->numMask,LockMask|p->numMask};
     for(auto mask:masks){XGrabKey(p->display,pc,mask,p->root,False,GrabModeAsync,GrabModeAsync);XGrabKey(p->display,rc,mask,p->root,False,GrabModeAsync,GrabModeAsync);}
     XSync(p->display,False);
-    if(lastXError){XUngrabKey(p->display,AnyKey,AnyModifier,p->root);warning="全局快捷键被占用，暂停/重置请用右键菜单，或在设置中更换按键。";return false;}
+    if(lastXError){XUngrabKey(p->display,AnyKey,AnyModifier,p->root);warning=ui("全局快捷键被占用，暂停/重置请用右键菜单，或在设置中更换按键。");return false;}
     p->pauseCode=pc;p->resetCode=rc;warning.clear();return true;
 }
 void X11Probe::drain(const std::function<void(int)> &action){

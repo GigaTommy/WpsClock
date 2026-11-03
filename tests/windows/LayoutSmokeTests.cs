@@ -10,6 +10,8 @@ public static class LayoutSmokeTests {
     [STAThread] public static int Main(){
         try{
             Native.SetProcessDPIAware();Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+            foreach(string language in new[]{"zh-CN","en"}){
+            UiText.UseLanguage(language);
             var owner=(Controller)FormatterServices.GetUninitializedObject(typeof(Controller));
             owner.Config=new Settings{PanelWidth=240,PanelHeight=100};owner.Config.Normalize();
             typeof(Controller).GetField("windows",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(owner,new List<ClockWindow>());
@@ -29,7 +31,8 @@ public static class LayoutSmokeTests {
                 if(form.AutoScaleMode!=AutoScaleMode.None)throw new Exception("Unexpected automatic scaling.");
                 form.Close();
             }
-            Console.WriteLine("PASS: four pages populated; control bounds stable across tab switches; button preferred sizes fit.");return 0;
+            }
+            Console.WriteLine("PASS: Chinese and English; four pages populated; control bounds stable across tab switches; button preferred sizes fit.");return 0;
         }catch(Exception e){Console.WriteLine("FAIL: "+e);return 1;}
     }
 }

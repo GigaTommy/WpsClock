@@ -5,7 +5,14 @@ using namespace wpsclock;
 static int count=0;
 static void check(bool ok,const char *name){if(!ok){std::cerr<<"FAIL "<<name<<'\n';std::exit(1);}++count;}
 int main(int argc,char **argv){
-    QCoreApplication app(argc,argv);Config c;Rule r;r.file="/meetings/发言A.pptx";r.seconds=120;c.rules.append(r);
+    QCoreApplication app(argc,argv);
+    check(UiText::resolve("system","zh_CN")=="zh-CN"&&UiText::resolve("system","en_GB")=="en","system language detection");
+    check(UiText::resolve("system","fr_FR")=="en"&&UiText::normalize("invalid")=="system","language fallback");
+    UiText::useLanguage("en");check(ui("保存")=="Save"&&ui("会议背景")=="Background","English catalog");
+    check(ui(QString("/会议/会议背景.pptx"))=="/会议/会议背景.pptx","paths remain unchanged");
+    check(ui("第 %1 行文件名为空、包含换行或重复。").arg(2)=="Row 2 has an empty filename, a newline or a duplicate.","translated placeholders");
+    UiText::useLanguage("zh-CN");check(ui("保存")=="保存","switch back to Chinese");
+    Config c;Rule r;r.file="/meetings/发言A.pptx";r.seconds=120;c.rules.append(r);
     auto m=matchTitle(c,"WPS Presentation Slide Show -［发言A.pptx］");check(m.matched&&m.seconds==120&&m.file=="发言A.pptx","Chinese WPS title");
     m=matchTitle(c,"WPS演示 幻灯片放映 - [发言A.pptx]");check(m.matched,"Chinese prefix");
     m=matchTitle(c,"发言A - WPS 演示");check(m.matched,"hidden extension");
@@ -21,8 +28,8 @@ int main(int argc,char **argv){
     check(cleanTitle("WPS演示放映 - 【报告.pptx】")=="报告.pptx","bracket normalization");
     check(normalized("/a/./b/../c.pdf")=="/a/c.pdf","Linux path normalization");
     QTemporaryDir dir;check(dir.isValid(),"temporary directory");QString path=dir.path()+"/settings.json",error;
-    c.duration=3600;c.opacity=40;c.prefix="超时 ";check(c.save(path,error),"atomic save");
-    auto loaded=Config::load(path,error);check(error.isEmpty()&&loaded.duration==3600&&loaded.rules.size()==3&&loaded.rules[2].background&&loaded.prefix=="超时 "&&loaded.opacity==40,"settings roundtrip");
+    c.language="en";c.duration=3600;c.opacity=40;c.prefix="超时 ";check(c.save(path,error),"atomic save");
+    auto loaded=Config::load(path,error);check(error.isEmpty()&&loaded.language=="en"&&loaded.duration==3600&&loaded.rules.size()==3&&loaded.rules[2].background&&loaded.prefix=="超时 "&&loaded.opacity==40,"settings roundtrip");
     auto permissions=QFile::permissions(path);check(!(permissions&QFile::ReadOther),"private settings permissions");
     QFile f(path);check(f.open(QIODevice::WriteOnly|QIODevice::Truncate),"open corruption fixture");f.write("not JSON");f.close();error.clear();
     loaded=Config::load(path,error);check(!error.isEmpty()&&loaded.duration==480,"corrupt settings fallback");check(f.open(QIODevice::ReadOnly)&&f.readAll()=="not JSON","corrupt settings retained");f.close();

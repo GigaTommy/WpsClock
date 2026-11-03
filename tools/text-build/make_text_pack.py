@@ -21,7 +21,7 @@ def make_pack():
         raise ValueError('VERSION does not match the application version display')
     packed = gzip.compress(source, mtime=0)
     script = (ROOT / 'tools' / 'text-build' / 'build-loader.ps1').read_text(encoding='ascii')
-    values = {'VERSION': VERSION, 'SOURCE_HASH': sha(source), 'PAYLOAD_HASH': sha(packed), 'SOURCE_LENGTH': str(len(source))}
+    values = {'VERSION': VERSION, 'SOURCE_HASH': sha(source), 'PAYLOAD_HASH': sha(packed), 'SOURCE_LENGTH': str(len(source)), 'LICENSE': (ROOT / 'LICENSE').read_text(encoding='ascii').rstrip()}
     for key, value in values.items():
         script = script.replace('@@' + key + '@@', value)
     if '@@' in script:

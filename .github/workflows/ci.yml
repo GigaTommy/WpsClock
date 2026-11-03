@@ -25,6 +25,10 @@ jobs:
           done
       - name: Repository preflight
         run: python3 -B tools/check_repository.py
+      - name: Embedded translations
+        run: |
+          python3 -B tools/i18n/generate.py --check
+          python3 -B -m unittest discover -s tools/i18n -p 'test_*.py' -v
       - name: Text package integrity
         run: python3 -B -m unittest discover -s tools/text-build -p 'test_text_pack.py' -v
 
@@ -91,6 +95,9 @@ jobs:
       - name: Windows logic regression
         shell: cmd
         run: call tests\windows\RunTests.cmd
+      - name: Chinese and English settings layout
+        shell: cmd
+        run: call tests\windows\RunLayoutChecks.cmd
       - name: PowerShell bootstrap validation
         shell: pwsh
         run: python -B tools/text-build/test_bootstrap.py
