@@ -56,12 +56,17 @@ jobs:
       - name: Run model, configuration and isolated X11 tests
         run: |
           xvfb-run -a -s '-screen 0 1280x800x24' bash -euo pipefail -c '
-            openbox --sm-disable > "$TMPDIR/openbox.log" 2>&1 &
+            ready_dir=$(mktemp -d "$TMPDIR/openbox-ready.XXXXXX")
+            ready_file="$ready_dir/ready"
+            # Root EWMH properties appear before Openbox finishes initialization.
+            # Its startup command runs after the WM enters OB_STATE_RUNNING.
+            openbox --sm-disable --startup "touch \"$ready_file\"" > "$TMPDIR/openbox.log" 2>&1 &
             wm_pid=$!
-            trap "kill $wm_pid 2>/dev/null || true" EXIT
+            cleanup(){ kill "$wm_pid" 2>/dev/null || true; rm -f "$ready_file"; rmdir "$ready_dir"; }
+            trap cleanup EXIT
             ready=false
             for attempt in $(seq 1 50); do
-              if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then
+              if [ -f "$ready_file" ] && xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then
                 ready=true
                 break
               fi
