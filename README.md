@@ -1,11 +1,40 @@
 # WpsClock
 
-离线演讲计时器：检测 WPS 全屏放映，显示悬浮倒计时，为不同 PPT/PDF 设置独立时长。支持暂停与重置、提前及到时提醒、超时显示、多屏显示、背景透明度，以及会议背景切换时暂停、返回发言文件时继续。
+[简体中文](README.md) | [English](README.en.md)
 
-- Windows：**2.4.2**，版本入口为 [VERSION](VERSION)。
-- 麒麟/Linux：**2.4.2-kylin.1-rc1**，版本入口为 [apps/linux/VERSION](apps/linux/VERSION)。
+WpsClock 是面向企业内部会议、培训、评审和路演的**绿色免安装放映计时器**。公开源码采用 **MIT 许可证**，构建后的程序可复制、离线分发和使用，适用于 PPT 等演示文件以及受支持阅读器中的 PDF 全屏计时。
+
+程序以普通用户身份运行，**无需管理员权限或 sudo 提权**，无需安装服务、插件、注册账号或访问网络。Windows 产物为 EXE，麒麟产物为 Linux 便携包；解压或复制后即可在满足运行依赖的电脑上启动。企业内部分发时保留随附的 MIT 版权与许可证声明。
+
+可提前为多个文件分别设置发言时长。放映不同文件时自动切换到对应时长，翻页不重置；会议背景文件可暂停并隐藏计时器，返回原发言文件时继续。另支持提前及到时提醒、超时显示、多屏显示与背景透明度。
+
+- Windows：**2.5.0**，版本入口为 [VERSION](VERSION)。
+- 麒麟/Linux：**2.5.0-kylin.1-rc1**，版本入口为 [apps/linux/VERSION](apps/linux/VERSION)。
 
 程序无账号、遥测或在线升级，不修改演示文档。完整功能见 [Windows 使用指南](docs/user-guide.md)和[麒麟使用指南](docs/linux-user-guide.md)。
+
+## 多语言
+
+Windows 和麒麟版均支持 **简体中文、English、跟随系统**。首次按系统界面语言选择：中文系统使用简体中文，其他系统使用英文。
+
+- Windows：打开“本地设置 → 版本 / 检测 → 语言 / Language”，选择语言后保存。
+- 麒麟：打开“本地设置 → 版本与检测 → 语言 / Language”，选择语言后保存。
+- 保存后菜单、设置与计时状态使用所选语言，现有计时进度保留；下次启动继续使用已保存的选择。
+- 文件名、文件路径、文件时长规则及自定义前缀按原值保留。系统文件选择器和操作系统错误信息可能沿用系统语言。
+
+翻译已编入程序，使用端不需要额外语言包、Python 或联网下载。新增和维护翻译的方法见[本地化开发说明](docs/localization.md)。
+
+## 多文件会议示例
+
+在 Windows 的“时长设置”或麒麟的“时长与文件”中提前添加文件，保存各自时长和用途：
+
+| 文件 | 用途 | 时长 | 放映时行为 |
+| --- | --- | --- | --- |
+| `发言A.pptx` | 发言计时 | 00:10:00 | 自动开始 10 分钟计时 |
+| `发言B.pptx` | 发言计时 | 00:15:00 | 切换至该文件后，自动开始 15 分钟计时 |
+| `会议背景.pptx` | 会议背景 | 不使用时长 | 暂停上一场发言、隐藏计时器并停止自动提醒 |
+
+放映 A → 背景 → A 时恢复 A 的剩余时间；A → B 时使用 B 的完整时长。返回较早的发言文件通常开始新场次，不为所有文件永久保存历史进度。未设置规则的文件使用默认时长；无法确定文件或存在同名歧义时使用默认值，并提供手动选择本场时长的入口。该功能依赖 WPS/阅读器提供可识别的放映窗口和文件信息。
 
 ## 选择运行环境
 
@@ -15,6 +44,8 @@
 | 银河麒麟 V10 SP1 2203 / x86_64 / X11 | Qt 5.12.8、X11、Xext、Qt xcb 平台插件；音频解码依赖系统组件 | C++14 编译器、CMake 3.16+、Qt Core/Gui/Widgets/Multimedia 和 X11/Xext 开发文件；生成便携包另需 Python 3 |
 | 其他 Linux | 需另行确认架构、Qt、glibc、libstdc++ 与桌面环境兼容性 | 不能直接保证麒麟 x86_64 包适用 |
 | macOS | 可使用 Python 文本打包和检查工具 | 不能原生执行 Windows 构建或 Linux/X11 应用构建；跨平台构建需要另外准备工具链 |
+
+普通用户需要对程序、配置及演示文件所在目录具备相应读写/执行权限；企业白名单或终端执行策略仍适用。免安装与不提权不代表程序能绕过系统策略。
 
 **运行已有程序与从源码重新构建的要求不同。** 麒麟电脑即使能运行程序，也不代表已安装编译器、CMake 和 Qt 开发文件。Windows 的 `.cmd`/`.exe` 不能用于麒麟；麒麟的 ELF 可执行文件不能用于 Windows。
 
@@ -95,7 +126,7 @@ tests\windows\RunLayoutChecks.cmd
 
 ```powershell
 New-Item -ItemType Directory -Force .local\agent\packages | Out-Null
-Compress-Archive -Path ".local\agent\apps\windows\WpsClock.exe","LICENSE" -DestinationPath ".local\agent\packages\WpsClock-Windows.zip" -Force
+Compress-Archive -Path ".local\agent\apps\windows\WpsClock.exe","LICENSE","docs/user-guide.en.md" -DestinationPath ".local\agent\packages\WpsClock-Windows.zip" -Force
 ```
 
 自定义声音按需另外附带；不要把个人配置混入更新包。`tools/windows/MakeSfx.cmd` 是可选 WinRAR 自解压打包方式，普通 ZIP 无需使用它。
@@ -125,6 +156,8 @@ Python 工具使用 Python 3.9+ 标准库，无需第三方 Python 包。在 Lin
 
 ```sh
 python3 -B tools/check_repository.py
+python3 -B tools/i18n/generate.py --check
+python3 -B -m unittest discover -s tools/i18n -p 'test_*.py' -v
 python3 -B -m unittest discover -s tools/text-build -p 'test_text_pack.py' -v
 git diff --check
 git status --short
@@ -146,7 +179,7 @@ git push -u origin HEAD
 
 文本传输的对象是**源码与构建/打包脚本**，接收端保存成文件后再执行。整个过程不需要内部电脑访问 GitHub；编译器、开发头文件及运行库需要预先具备。传输与执行使用所在环境允许的方式，构建脚本不会安装依赖或调整执行策略。
 
-文件均应完整保存，保留扩展名和目录层级；不要混入聊天时间、序号、Markdown 围栏或自动替换的引号。Windows CMD 文件使用 CRLF，C#/C++/Python 和中文文档使用 UTF-8，Linux 文件名区分大小写。
+文件均应完整保存，保留扩展名和目录层级；不要混入聊天时间、序号、Markdown 围栏或自动替换的引号。Windows CMD 文件使用 CRLF，C#/C++/Python 和文档使用 UTF-8，Linux 文件名区分大小写。翻译已嵌入 C# 源码和 Linux 的 `i18n.h`，只重新构建时不需要传输 `locales/` 或运行翻译生成器。
 
 ### Windows 方案 A：单个文本文件（接收端无需 Python）
 
@@ -159,8 +192,8 @@ python3 -B tools/text-build/make_text_pack.py
 Windows 生成端可使用 `python -B tools\text-build\make_text_pack.py`。输出位于 `.local/agent/packages/text-build/`：
 
 ```text
-WpsClock-2.4.2-单文件构建.txt
-WpsClock-2.4.2-单文件构建.cmd
+WpsClock-2.5.0-单文件构建.txt
+WpsClock-2.5.0-单文件构建.cmd
 manifest.json
 ```
 
@@ -169,13 +202,13 @@ manifest.json
 **Windows 接收端：**
 
 1. 将 TXT 的全部内容传入内部，从第一行 `@echo off` 到最后一行完整保留。
-2. 用纯文本编辑器保存为 `Build-WpsClock.cmd`。使用 ASCII 兼容编码，确认不是 `Build-WpsClock.cmd.txt`。
+2. 用纯文本编辑器保存为 `Build-WpsClock.cmd`。使用 ANSI 或 UTF-8 无 BOM 编码，确认不是 `Build-WpsClock.cmd.txt`。
 3. 从托盘退出旧 WpsClock。若要迁移设置，将旧 `WpsClock.settings.xml` 放在此 CMD 旁，原音频文件保留。
 4. 双击 CMD。它调用 Windows PowerShell 校验并还原源码，再调用 .NET Framework C# 编译器生成程序。
 5. 看到 `SUCCESS` 后，打开 CMD 旁的 `WpsClock-<版本>-<源码摘要>/`，运行 `WpsClock-<版本>.exe`。
 6. 在“版本／检测”确认版本与文件时长规则。后续日常使用只运行 EXE。
 
-接收端不需要 Python、.NET SDK 或 WinRAR；需要已有 Windows PowerShell 与 .NET Framework 编译器。新目录已有配置时不会覆盖，设置导入情况见 `BUILD-INFO.txt`；构建失败查看该目录的 `build.log`。校验失败需重新传输完整文本，不要手改载荷。详见[文本构建说明](docs/text-build.md)。
+接收端不需要 Python、.NET SDK 或 WinRAR；需要已有 Windows PowerShell 与 .NET Framework 编译器。生成目录附带 `LICENSE.txt`，分发 EXE 时一并保留。新目录已有配置时不会覆盖，设置导入情况见 `BUILD-INFO.txt`；构建失败查看该目录的 `build.log`。校验失败需重新传输完整文本，不要手改载荷。详见[文本构建说明](docs/text-build.md)。
 
 ### Windows 方案 B：分别传输明文源码与构建文件
 
@@ -206,6 +239,7 @@ wpsclock/
 │   ├── main.cpp
 │   ├── model.h
 │   ├── appdata.h
+│   ├── i18n.h
 │   ├── x11probe.cpp
 │   └── x11probe.h
 ├── tests/linux/
@@ -217,10 +251,11 @@ wpsclock/
 └── docs/
     ├── linux-development.md
     ├── linux-user-guide.md
+    ├── linux-user-guide.en.md
     └── linux-validation.md
 ```
 
-`tests/linux/` 不能省略：当前 CMake 在构建应用时也会编译测试程序。`package.py` 需要 `LICENSE`、两份使用/验证说明及 `apps/linux/VERSION`；仅复制 `main.cpp` 或 `package.py` 无法完成构建和打包。
+`tests/linux/` 不能省略：当前 CMake 在构建应用时也会编译测试程序。`package.py` 需要 `LICENSE`、中英文使用说明、验证说明及 `apps/linux/VERSION`；仅复制 `main.cpp` 或 `package.py` 无法完成构建和打包。
 
 **生成端可附带源码校验清单。** 在上述目录结构的源码根目录执行：
 
@@ -277,6 +312,8 @@ tests/linux/              Linux 计时模型、配置与 X11 集成测试
 tools/text-build/         Windows 单文件文本构建工具
 tools/windows/            可选 WinRAR SFX 打包工具
 tools/linux/              Linux 便携包打包工具
+tools/i18n/               翻译生成器与完整性检查
+locales/                  共享翻译目录（运行时无需携带）
 tools/check_repository.py 提交前文件、文档链接及敏感信息静态检查
 examples/                 Python/Tk、HTML 手动计时示例和 PowerShell 原型
 docs/                     使用指南、架构及版本说明

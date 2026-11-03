@@ -20,6 +20,10 @@ Windows 应用源码位于 `apps/windows/WpsClock.cs`，使用 C# 5 和 .NET Fra
 
 `examples` 包含 Python/Tk、HTML 手动计时器和 PowerShell 原型，功能与正式应用不同。
 
+## 多语言
+
+`locales/en.json` 以中文界面文本为键，维护英文翻译。生成器将翻译嵌入 Windows 单文件源码和 Linux 的 `i18n.h`，运行时不读取外部语言文件。语言偏好与已有设置一起保存，文件匹配逻辑和真实文件名独立于界面语言。详见[本地化说明](localization.md)。
+
 ## 依赖
 
 应用不依赖第三方 NuGet 包。界面使用 Windows Forms，窗口与透明绘制使用 Win32/GDI，文档元数据通过可选的 COM 接口读取，音频使用 Windows 系统组件。
