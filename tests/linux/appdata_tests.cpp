@@ -12,6 +12,16 @@ int main(int argc,char **argv){
     check(ui(QString("/会议/会议背景.pptx"))=="/会议/会议背景.pptx","paths remain unchanged");
     check(ui("第 %1 行文件名为空、包含换行或重复。").arg(2)=="Row 2 has an empty filename, a newline or a duplicate.","translated placeholders");
     UiText::useLanguage("zh-CN");check(ui("保存")=="保存","switch back to Chinese");
+    MatchStatus status;check(status.display()=="等待 WPS 放映","Chinese standby status");
+    status.recognized("唯一文件名匹配");check(status.display()=="唯一文件名匹配","Chinese automatic status");
+    UiText::useLanguage("en");check(status.display()=="Unique filename match","automatic status follows language");
+    UiText::useLanguage("zh-CN");status.choose("/会议/会议背景.pptx");
+    check(status.display()=="本场手动指定：会议背景.pptx","Chinese manual status");
+    UiText::useLanguage("en");check(status.display()=="Manual session duration: 会议背景.pptx","manual status follows language and preserves filename");
+    UiText::useLanguage("zh-CN");check(status.display()=="本场手动指定：会议背景.pptx","manual status switches back");
+    status.waiting();check(status.manualFile.isEmpty()&&status.display()=="等待 WPS 放映","standby clears manual status");
+    status.choose("/会议/发言A.pptx");status.recognized("唯一文件名匹配");
+    check(status.manualFile.isEmpty()&&status.display()=="唯一文件名匹配","new match clears manual status");
     Config c;Rule r;r.file="/meetings/发言A.pptx";r.seconds=120;c.rules.append(r);
     auto m=matchTitle(c,"WPS Presentation Slide Show -［发言A.pptx］");check(m.matched&&m.seconds==120&&m.file=="发言A.pptx","Chinese WPS title");
     m=matchTitle(c,"WPS演示 幻灯片放映 - [发言A.pptx]");check(m.matched,"Chinese prefix");

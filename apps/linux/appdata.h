@@ -61,6 +61,14 @@ struct Match {
     int seconds=480,index=-1;
     bool matched=false,ambiguous=false,background=false;
 };
+// Keep identity and source text separate; translate only when rendering status.
+struct MatchStatus {
+    QString explanation="等待 WPS 放映",manualFile;
+    void waiting(){explanation="等待 WPS 放映";manualFile.clear();}
+    void recognized(const QString &source){explanation=source;manualFile.clear();}
+    void choose(const QString &file){manualFile=file;}
+    QString display() const {return manualFile.isEmpty()?ui(explanation):ui("本场手动指定：")+QFileInfo(manualFile).fileName();}
+};
 inline QString cleanTitle(QString title) {
     title=title.trimmed();
     title.remove(QRegularExpression("^(?:WPS\\s+Presentation\\s+Slide\\s+Show|幻灯片放映|WPS\\s*演示\\s*(?:幻灯片\\s*)?放映)[\\s:：\\-—–]*",QRegularExpression::CaseInsensitiveOption));
