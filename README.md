@@ -1,6 +1,6 @@
 # WpsClock
 
-离线的 Windows 演讲计时器：检测 WPS 全屏放映，显示悬浮倒计时，为不同 PPT/PDF 设置独立时长。当前源码版本为 **2.4.2**，版本入口见 [VERSION](VERSION)。
+离线演讲计时器：检测 WPS 全屏放映，显示悬浮倒计时，为不同 PPT/PDF 设置独立时长。Windows 源码版本为 **2.4.2**，版本入口见 [VERSION](VERSION)。新增麒麟原生候选版 **2.4.2-kylin.1-rc1**，见[麒麟版说明](docs/linux-user-guide.md)与[开发验证说明](docs/linux-development.md)。
 
 主要功能包括暂停与重置、提前及到时提醒、超时显示、多屏显示、背景透明度，以及“会议背景”文件切换时暂停、返回发言文件时继续。程序无账号、遥测或在线升级，不修改演示文档。
 
@@ -10,7 +10,7 @@
 | --- | --- |
 | Windows 10 / 11 | 当前实现目标；需要已有的 .NET Framework 4.5+，建议 4.8；WPS 实际兼容性需实机验证 |
 | PowerPoint / 独立 PDF 阅读器 | 包含窗口检测逻辑，未对所有软件版本完成实机验证 |
-| 麒麟及其他 Linux | 不支持当前 Windows 应用 |
+| 银河麒麟 V10 SP1 2203 / x86_64 / X11 | C++ / Qt 5.12 原生绿色版；用户于 2026-11-02 确认可直接使用，逐项验证边界见[验证记录](docs/linux-validation.md) |
 | macOS | 可运行 Python 工具和文本包完整性检查，不能原生运行当前 Windows 程序 |
 
 应用使用 Windows Forms、Win32、GDI 和可选 COM 自动化。日常运行不需要 Python、PowerShell、WinRAR 或 .NET SDK；源码编译需要 Windows 已有的 .NET Framework C# 编译器。
