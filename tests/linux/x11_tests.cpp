@@ -28,14 +28,20 @@ int main(int argc,char **argv){
         XMapWindow(d,w);XSync(d,False);
         // The window manager updates its client list on a separate connection.
         // Wait for registration instead of assuming a fixed scheduler delay.
-        check(waitUntil([&]{
+        bool registered=waitUntil([&]{
             Atom actual=0;int format=0;unsigned long count=0,left=0;unsigned char *data=nullptr;bool found=false;
             if(XGetWindowProperty(d,root,atom("_NET_CLIENT_LIST"),0,4096,False,XA_WINDOW,&actual,&format,&count,&left,&data)==0&&actual==XA_WINDOW&&format==32){
                 auto ids=reinterpret_cast<unsigned long*>(data);for(unsigned long i=0;i<count;++i)if(ids[i]==w)found=true;
             }
             if(data)XFree(data);
             XWindowAttributes attrs={};return found&&XGetWindowAttributes(d,w,&attrs)&&attrs.map_state==IsViewable;
-        }),"window manager registers mapped fixture");
+        });
+        if(!registered){
+            std::cerr<<"Fixture registration failed: window="<<w<<" DISPLAY="<<qgetenv("DISPLAY").constData()<<'\n';
+            QProcess::execute("xprop",{"-root","_NET_CLIENT_LIST","_NET_CLIENT_LIST_STACKING","_NET_SUPPORTING_WM_CHECK"});
+            QProcess::execute("xwininfo",{"-root","-tree"});
+        }
+        check(registered,"window manager registers mapped fixture");
         return w;
     };
     X11Probe probe;check(probe.available(),"probe connected");Config c;Rule a;a.file="A.pptx";a.seconds=120;c.rules.append(a);

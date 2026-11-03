@@ -52,7 +52,7 @@ jobs:
       - name: Run model, configuration and isolated X11 tests
         run: |
           xvfb-run -a -s '-screen 0 1280x800x24' bash -euo pipefail -c '
-            openbox > "$TMPDIR/openbox.log" 2>&1 &
+            openbox --sm-disable > "$TMPDIR/openbox.log" 2>&1 &
             wm_pid=$!
             trap "kill $wm_pid 2>/dev/null || true" EXIT
             ready=false
@@ -64,8 +64,8 @@ jobs:
               sleep 0.1
             done
             if [ "$ready" != true ]; then cat "$TMPDIR/openbox.log"; exit 1; fi
-            ctest --test-dir .local/linux-build --output-on-failure
-            ctest --test-dir .local/linux-build -R "^x11$" --repeat until-fail:5 --output-on-failure
+            ctest --test-dir .local/linux-build --output-on-failure || { cat "$TMPDIR/openbox.log"; exit 1; }
+            ctest --test-dir .local/linux-build -R "^x11$" --repeat until-fail:5 --output-on-failure || { cat "$TMPDIR/openbox.log"; exit 1; }
           '
       - name: Verify portable packaging
         run: python3 -B tools/linux/package.py --binary .local/linux-build/WpsClock --out .local/agent/packages/linux-ci
