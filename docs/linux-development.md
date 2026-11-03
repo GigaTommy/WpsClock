@@ -17,7 +17,7 @@ Linux 版本见 `apps/linux/VERSION`；根目录 `VERSION` 表示 Windows 版本
 ```sh
 cmake -S apps/linux -B .local/linux-build -DCMAKE_BUILD_TYPE=Release
 cmake --build .local/linux-build --parallel 2
-ctest --test-dir .local/linux-build --output-on-failure
+(cd .local/linux-build && ctest --output-on-failure)
 ```
 
 `model` 不依赖 GUI；`appdata` 使用 Qt Core/Gui，但不需要显示服务。X11 集成测试需要独立的 1280×800 显示会话、窗口管理器与 xdotool。使用 `-DWPSCLOCK_X11_TESTS=ON` 将其加入 CTest。CI 通过 Xvfb/Openbox 隔离运行，避免影响日常桌面的窗口与快捷键。
