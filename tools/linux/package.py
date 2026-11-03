@@ -25,6 +25,7 @@ def main():
     files = {
         'WpsClock': (data, 0o755),
         '使用说明.txt': ((ROOT / 'docs/linux-user-guide.md').read_bytes(), 0o644),
+        'README.en.txt': ((ROOT / 'docs/linux-user-guide.en.md').read_bytes(), 0o644),
         '验证记录.txt': ((ROOT / 'docs/linux-validation.md').read_bytes(), 0o644),
         'LICENSE.txt': ((ROOT / 'LICENSE').read_bytes(), 0o644),
         '版本.txt': ((version + '\nLinux x86_64; Kylin V10 SP1 2203; X11; Qt 5.12.8; glibc 2.31\n').encode(), 0o644),

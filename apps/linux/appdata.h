@@ -2,6 +2,7 @@
 #include <QtCore>
 #include <QtGui>
 #include "model.h"
+#include "i18n.h"
 
 namespace wpsclock {
 inline std::string bytes(const QString &s){auto b=s.toUtf8();return std::string(b.constData(),size_t(b.size()));}
@@ -12,18 +13,19 @@ struct Config {
     int pauseKey=3,resetKey=4;
     bool countUp=false,stopAtZero=false,automatic=true,syncScreens=true,locked=false,hideIdle=false;
     bool nearSound=true,endSound=true,clockTime=false;
-    QString nearFile,endFile,prefix="-";
+    QString nearFile,endFile,prefix="-",language="system";
     QColor foreground=Qt::white,background=QColor("#0078d7"),warningForeground=Qt::white,warningBackground=QColor("#b42318");
     QVector<Rule> rules;
     QJsonObject positions;
     static Config load(const QString &path,QString &error) {
         Config c;QFile f(path);if(!f.exists())return c;
-        if(!f.open(QIODevice::ReadOnly)){error="无法读取设置，当前使用默认值："+f.errorString();return c;}
-        if(f.size()>2*1024*1024){error="设置文件过大，未读取；原文件已保留。";return c;}
+        if(!f.open(QIODevice::ReadOnly)){error=ui("无法读取设置，当前使用默认值：")+f.errorString();return c;}
+        if(f.size()>2*1024*1024){error=ui("设置文件过大，未读取；原文件已保留。");return c;}
         QJsonParseError pe;auto doc=QJsonDocument::fromJson(f.readAll(),&pe);
-        if(pe.error!=QJsonParseError::NoError||!doc.isObject()){error="设置文件损坏，当前使用默认值；原文件已保留。";return c;}
-        auto o=doc.object();if(o.value("schema").toInt()!=1){error="设置格式版本不支持，原文件已保留。";return c;}
+        if(pe.error!=QJsonParseError::NoError||!doc.isObject()){error=ui("设置文件损坏，当前使用默认值；原文件已保留。");return c;}
+        auto o=doc.object();if(o.value("schema").toInt()!=1){error=ui("设置格式版本不支持，原文件已保留。");return c;}
         auto num=[&](const char *k,int d,int lo,int hi){return qBound(lo,o.value(k).toInt(d),hi);};
+        c.language=UiText::normalize(o.value("language").toString("system"));
         c.duration=num("duration",480,0,86399);c.warning=num("warning",60,0,86399);c.grace=num("grace",3,0,120);
         c.width=num("width",260,140,1600);c.height=num("height",110,70,900);c.fontSize=num("fontSize",42,16,120);c.opacity=num("opacity",90,0,100);
         c.pauseKey=num("pauseKey",3,1,12);c.resetKey=num("resetKey",4,1,12);
@@ -42,7 +44,7 @@ struct Config {
         c.positions=o.value("positions").toObject();return c;
     }
     bool save(const QString &path,QString &error) const {
-        QJsonObject o; o["schema"]=1;
+        QJsonObject o; o["schema"]=1;o["language"]=UiText::normalize(language);
         o["duration"]=duration;o["warning"]=warning;o["grace"]=grace;o["width"]=width;o["height"]=height;o["fontSize"]=fontSize;o["opacity"]=opacity;
         o["pauseKey"]=pauseKey;o["resetKey"]=resetKey;o["countUp"]=countUp;o["stopAtZero"]=stopAtZero;o["automatic"]=automatic;o["syncScreens"]=syncScreens;
         o["locked"]=locked;o["hideIdle"]=hideIdle;o["nearSound"]=nearSound;o["endSound"]=endSound;o["clockTime"]=clockTime;

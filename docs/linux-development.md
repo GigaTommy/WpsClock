@@ -5,6 +5,7 @@ Linux 版本见 `apps/linux/VERSION`；根目录 `VERSION` 表示 Windows 版本
 ## 模块
 
 - `apps/linux/model.h`：单调时钟计时、自动会话与会议背景暂停恢复。
+- `apps/linux/i18n.h`：生成并嵌入的中英文翻译；维护方式见[本地化说明](localization.md)。
 - `apps/linux/appdata.h`：Linux 文件匹配、JSON 配置与内置 WAV。
 - `apps/linux/x11probe.*`：WPS 窗口检测、全局热键、置顶与点击穿透。
 - `apps/linux/main.cpp`：Qt Widgets 界面、设置、音频与控制。

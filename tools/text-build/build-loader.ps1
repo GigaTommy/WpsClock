@@ -4,6 +4,9 @@ $sourceHash = '@@SOURCE_HASH@@'
 $payloadHash = '@@PAYLOAD_HASH@@'
 $sourceLength = @@SOURCE_LENGTH@@
 $buildId = $sourceHash.Substring(0, 12)
+$licenseText = @'
+@@LICENSE@@
+'@
 function Get-Hash([byte[]] $bytes) {
     $sha = [Security.Cryptography.SHA256]::Create()
     try { return ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '') }
@@ -68,6 +71,7 @@ try {
     & $compiler @compileArgs > $logPath 2>&1
     if ($LASTEXITCODE -ne 0 -or -not [IO.File]::Exists($exePath)) { throw ('Compilation failed. Read ' + $logPath) }
     Assert-Stopped
+    [IO.File]::WriteAllText((Join-Path $destination 'LICENSE.txt'), $licenseText, [Text.Encoding]::UTF8)
     $targetExe = Join-Path $destination $exeName
     Copy-Item -LiteralPath $sourcePath -Destination (Join-Path $destination 'WpsClock.cs') -Force
     Copy-Item -LiteralPath $exePath -Destination $targetExe -Force

@@ -14,6 +14,15 @@ public static class ClockTests {
     static void Check(bool ok,string name){if(!ok)throw new Exception("FAIL: "+name);checks++;}
     static int StableExit(BackgroundHold hold,ClockState clock,double now,string file,FileMatch match){hold.Observe(clock,now-.4,file,match);return hold.Observe(clock,now,file,match);}
     public static int Main(){
+        Check(UiText.Resolve("system","zh-CN")=="zh-CN"&&UiText.Resolve("system","en-GB")=="en","system language detection");
+        Check(UiText.Resolve("system","fr-FR")=="en"&&UiText.Normalize("unsupported")=="system","unsupported languages fall back predictably");
+        UiText.UseLanguage("en");
+        Check(UiText.Get("保存")=="Save"&&UiText.Get("会议背景")=="Background","English UI catalog");
+        Check(UiText.Get(@"C:\会议\会议背景.pptx")==@"C:\会议\会议背景.pptx","filenames and paths are never translated");
+        Check(FileTiming.GetFile(new ShowInfo{Title="WPS演示 幻灯片放映 - [会议背景.pptx]"})=="会议背景.pptx","English UI preserves Chinese title detection");
+        var translatedSettings=new Settings{Language="en-US"};translatedSettings.Normalize();
+        Check(translatedSettings.Language=="en"&&translatedSettings.Clone().Language=="en","language survives configuration cloning");
+        UiText.UseLanguage("zh-CN");Check(UiText.Get("保存")=="保存","switch back to Chinese");
         Check(PanelGeometry.Alpha(-5)==0&&PanelGeometry.Alpha(0)==0,"transparent alpha clamps");
         Check(PanelGeometry.Alpha(50)==128&&PanelGeometry.Alpha(100)==255&&PanelGeometry.Alpha(120)==255,"background alpha independent range");
         var size=new Size(300,140);

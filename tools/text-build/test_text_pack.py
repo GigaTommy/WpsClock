@@ -55,6 +55,9 @@ class TextPackTests(unittest.TestCase):
 
     def test_exact_source_roundtrip(self):
         self.assertEqual(verify(PACK.read_bytes()), (ROOT/'apps/windows/WpsClock.cs').read_bytes())
+    def test_portable_build_includes_mit_notice(self):
+        self.assertIn((ROOT/'LICENSE').read_text(encoding='ascii').strip(), PACK.read_text(encoding='ascii'))
+        self.assertIn("'LICENSE.txt'", PACK.read_text(encoding='ascii'))
     def test_txt_and_cmd_identical(self):
         self.assertEqual(PACK.read_bytes(), PACK.with_suffix('.cmd').read_bytes())
     def test_lf_copy_accepted(self):
