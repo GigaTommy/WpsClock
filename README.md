@@ -1,6 +1,6 @@
 # WpsClock
 
-离线的 Windows 演讲计时器：检测 WPS 全屏放映，显示悬浮倒计时，为不同 PPT/PDF 设置独立时长。当前源码版本为 **2.4.2**，版本入口见 [VERSION](VERSION)。
+离线演讲计时器：检测 WPS 全屏放映，显示悬浮倒计时，为不同 PPT/PDF 设置独立时长。Windows 源码版本为 **2.4.2**，版本入口见 [VERSION](VERSION)。新增麒麟原生候选版 **2.4.2-kylin.1-rc1**，见[麒麟版说明](docs/linux-user-guide.md)与[开发验证说明](docs/linux-development.md)。
 
 主要功能包括暂停与重置、提前及到时提醒、超时显示、多屏显示、背景透明度，以及“会议背景”文件切换时暂停、返回发言文件时继续。程序无账号、遥测或在线升级，不修改演示文档。
 
@@ -10,10 +10,10 @@
 | --- | --- |
 | Windows 10 / 11 | 当前实现目标；需要已有的 .NET Framework 4.5+，建议 4.8；WPS 实际兼容性需实机验证 |
 | PowerPoint / 独立 PDF 阅读器 | 包含窗口检测逻辑，未对所有软件版本完成实机验证 |
-| 麒麟及其他 Linux | 不支持当前 Windows 应用 |
+| 银河麒麟 V10 SP1 2203 / x86_64 / X11 | C++ / Qt 5.12 原生候选版；兼容性范围见[验证说明](docs/linux-validation.md) |
 | macOS | 可运行 Python 工具和文本包完整性检查，不能原生运行当前 Windows 程序 |
 
-应用使用 Windows Forms、Win32、GDI 和可选 COM 自动化。日常运行不需要 Python、PowerShell、WinRAR 或 .NET SDK；源码编译需要 Windows 已有的 .NET Framework C# 编译器。
+Windows 版使用 Windows Forms、Win32、GDI 和可选 COM 自动化；源码编译需要 .NET Framework C# 编译器。Linux 版使用 Qt 5 和 X11，构建与运行依赖见[开发说明](docs/linux-development.md)。
 
 ## 快速开始（Windows）
 
@@ -39,7 +39,9 @@ apps\windows\Build.cmd
 
 ```text
 apps/windows/            Windows C# 源码及构建入口
-tests/windows/           逻辑回归、Windows 界面布局检查
+apps/linux/              Linux C++ / Qt 源码及 CMake 构建入口
+tests/windows/           Windows 逻辑回归与界面布局检查
+tests/linux/             Linux 计时模型、配置与 X11 集成测试
 tools/text-build/        单文件文本构建生成器、PowerShell 模板和完整性检查
 tools/windows/           可选的 WinRAR SFX 打包工具
 tools/check_repository.py 提交前文件、文档链接及敏感信息静态检查
@@ -60,7 +62,7 @@ tests\windows\RunLayoutChecks.cmd
 
 第二项需要交互式 Windows 桌面。输出位于 `.local\agent\tmp\windows-tests`。测试通过不等于真实 WPS、多屏、缩放、快捷键和音频兼容性全部通过。
 
-[GitHub Actions](.github/workflows/ci.yml) 配置了 Linux 上的仓库与文本完整性检查，以及 Windows 上的应用构建、逻辑回归和 PowerShell 引导检查。GUI 布局与 WPS 放映需要在交互式桌面中验证。
+[GitHub Actions](.github/workflows/ci.yml) 配置了 Linux 上的仓库与文本完整性检查，Linux 应用构建及隔离 X11 测试，以及 Windows 上的应用构建、逻辑回归和 PowerShell 引导检查。GUI 布局与 WPS 放映需要在交互式桌面中验证。
 
 Python 3.9+ 工具检查，不需安装第三方 Python 包：
 

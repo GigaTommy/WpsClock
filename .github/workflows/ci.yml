@@ -28,6 +28,48 @@ jobs:
       - name: Text package integrity
         run: python3 -B -m unittest discover -s tools/text-build -p 'test_text_pack.py' -v
 
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Prepare Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake g++ qtbase5-dev qtmultimedia5-dev libx11-dev libxext-dev xvfb xauth x11-utils openbox xdotool
+      - name: Keep build and temporary files inside ignored output
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.local/agent/tmp/ci"
+          for variable in TMPDIR TMP TEMP; do
+            echo "$variable=$GITHUB_WORKSPACE/.local/agent/tmp/ci" >> "$GITHUB_ENV"
+          done
+      - name: Build Linux application and tests
+        run: |
+          cmake -S apps/linux -B .local/linux-build -DCMAKE_BUILD_TYPE=Release -DWPSCLOCK_X11_TESTS=ON
+          cmake --build .local/linux-build --parallel 2
+      - name: Run model, configuration and isolated X11 tests
+        run: |
+          xvfb-run -a -s '-screen 0 1280x800x24' bash -euo pipefail -c '
+            openbox --sm-disable > "$TMPDIR/openbox.log" 2>&1 &
+            wm_pid=$!
+            trap "kill $wm_pid 2>/dev/null || true" EXIT
+            ready=false
+            for attempt in $(seq 1 50); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then
+                ready=true
+                break
+              fi
+              sleep 0.1
+            done
+            if [ "$ready" != true ]; then cat "$TMPDIR/openbox.log"; exit 1; fi
+            ctest --test-dir .local/linux-build --output-on-failure || { cat "$TMPDIR/openbox.log"; exit 1; }
+            ctest --test-dir .local/linux-build -R "^x11$" --repeat until-fail:5 --output-on-failure || { cat "$TMPDIR/openbox.log"; exit 1; }
+          '
+      - name: Verify portable packaging
+        run: python3 -B tools/linux/package.py --binary .local/linux-build/WpsClock --out .local/agent/packages/linux-ci
+
   windows:
     runs-on: windows-2022
     timeout-minutes: 10

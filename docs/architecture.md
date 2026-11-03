@@ -1,5 +1,7 @@
 # 架构
 
+麒麟原生实现独立位于 `apps/linux/`，见[麒麟版开发说明](linux-development.md)。以下描述保留原 Windows 实现。
+
 Windows 应用源码位于 `apps/windows/WpsClock.cs`，使用 C# 5 和 .NET Framework。单文件源码可通过系统附带的编译器完成离线构建。
 
 ## 应用模块
