@@ -97,7 +97,16 @@ inline Match matchTitle(const Config &c,const QString &title,const QString &know
     }
     if(hits.size()==1){const auto &r=c.rules[hits[0]];m.index=hits[0];m.matched=true;m.seconds=r.seconds;m.background=r.background;
         if(m.file.isEmpty())m.file=QFileInfo(r.file).fileName();m.explanation=QDir::isAbsolutePath(m.file)?"完整路径匹配":"唯一文件名匹配";
-    }else if(hits.size()>1){m.ambiguous=true;m.explanation="同名文件有歧义，使用默认时长";}
+    }else if(hits.size()>1){
+        m.ambiguous=true;m.explanation="同名文件有歧义，使用默认时长";
+        // A hidden extension can still identify a filename shared by several paths.
+        // Preserve that identity without selecting any of the conflicting rules.
+        if(m.file.isEmpty()){
+            QString name=QFileInfo(c.rules[hits.first()].file).fileName();
+            for(int i:hits)if(QFileInfo(c.rules[i].file).fileName()!=name){name.clear();break;}
+            m.file=name;
+        }
+    }
     else m.explanation=m.file.isEmpty()?"未识别文件，使用默认时长":"未设置文件规则，使用默认时长";
     return m;
 }

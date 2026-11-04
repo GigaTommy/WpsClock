@@ -54,6 +54,26 @@ int main(int argc,char **argv){
     check(waitUntil([&]{windows=probe.scan(c,{QRect(0,0,1280,800)});index=selectShow(windows,0);return index>=0;}),"window manager applies fullscreen geometry");
     check(index>=0&&windows[index].show&&windows[index].file=="A.pptx"&&windows[index].match.seconds==120,"fullscreen identified with rule");
     auto retained=windows[index].id;check(selectShow(windows,retained)>=0,"retain existing show");
+    auto rename=[&](const char *title){XChangeProperty(d,show,atom("_NET_WM_NAME"),atom("UTF8_STRING"),8,PropModeReplace,reinterpret_cast<const unsigned char*>(title),int(strlen(title)));XSync(d,False);};
+    auto readShow=[&]{windows=probe.scan(c,{QRect(0,0,1280,800)});index=selectShow(windows,retained);return index>=0;};
+    // Two editors prevent unique-editor inference, exercising the old cached binding.
+    auto otherEditor=create("C.pptx - WPS Presentation","wpp",false);
+    Rule b;b.file="/one/B.pptx";b.seconds=300;b.background=true;c.rules.append(b);b.file="/two/B.pptx";b.seconds=600;b.background=false;c.rules.append(b);
+    rename("WPS Presentation Slide Show - [B]");
+    check(waitUntil([&]{return readShow()&&windows[index].match.ambiguous;}),"new ambiguous title overrides a cached file on the same window");
+    check(windows[index].file=="B.pptx"&&windows[index].match.seconds==c.duration&&!windows[index].match.background,"ambiguous hidden-extension title preserves filename and default duration");
+    rename("WPS Presentation Slide Show");
+    check(readShow()&&windows[index].file.isEmpty(),"ambiguous title invalidates the old cached binding for later unnamed scans");
+    rename("WPS Presentation Slide Show - [A.pptx]");
+    check(readShow()&&windows[index].file=="A.pptx"&&windows[index].match.matched,"explicit title restores a valid binding");
+    XDestroyWindow(d,otherEditor);XSync(d,False);
+    check(waitUntil([&]{windows=probe.scan(c,{QRect(0,0,1280,800)});return windows.size()==2;}),"extra editor removed before unique-editor regression");
+    // The remaining A editor must not override the new B title either.
+    rename("WPS Presentation Slide Show - [B]");
+    check(readShow()&&windows[index].file=="B.pptx"&&windows[index].match.ambiguous,"unrelated unique editor cannot replace current ambiguous title evidence");
+    b.file="/three/B.pdf";c.rules.append(b);
+    check(readShow()&&windows[index].file.isEmpty()&&windows[index].match.ambiguous&&windows[index].match.seconds==c.duration,"ambiguous extensions do not fall back to the old editor or cached file");
+    rename("WPS Presentation Slide Show - [A.pptx]");check(readShow()&&windows[index].file=="A.pptx","restore original fixture after binding regressions");
     auto inputRegion=[&]{int rectangles=-1,ordering=0;auto *rects=XShapeGetRectangles(d,show,ShapeInput,&rectangles,&ordering);if(rects)XFree(rects);return rectangles;};
     probe.top(show,true);check(waitUntil([&]{return inputRegion()==0;}),"click-through input region empty");
     probe.top(show,false);check(waitUntil([&]{return inputRegion()>0;}),"click-through can be unlocked");

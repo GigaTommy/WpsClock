@@ -72,6 +72,8 @@ QVector<WindowInfo> X11Probe::scan(const Config &config,const QList<QRect> &scre
     }
     for(auto it=p->bound.begin();it!=p->bound.end();)if(!alive.contains(it.key()))it=p->bound.erase(it);else ++it;
     for(auto &w:out){if(!w.show)continue;
+        // Current title evidence outranks a stale binding or an unrelated editor.
+        if(w.match.ambiguous){p->bound.remove(w.id);continue;}
         if(w.file.isEmpty()){
             QSet<QString> names;QString ownerFile;int showCount=0;
             for(const auto &other:out)if(w.pid>0&&other.pid==w.pid){

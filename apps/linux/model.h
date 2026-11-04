@@ -49,9 +49,10 @@ struct Observation {
     int seconds=480;
 };
 struct Session {
+    enum class Change {Unchanged,Started,Stopped,Background};
     Clock clock;
     bool monitoring=true,manual=false,held=false,wasRunning=false,manualDuration=false;
-    std::string file,window,suppressed,candidate;
+    std::string file,window,suppressedFile,suppressedWindow,candidate;
     double candidateAt=-1,lastCandidate=-1,missingAt=-1;
     int grace=3;
     static std::string key(const Observation &o) {return o.file.empty()?"w:"+o.window:"f:"+o.file;}
@@ -60,15 +61,25 @@ struct Session {
         lastCandidate=now;return now-candidateAt>=0.35;
     }
     void clearCandidate(){candidate.clear();candidateAt=lastCandidate=-1;}
+    void clearSuppression(){suppressedFile.clear();suppressedWindow.clear();}
+    bool isSuppressed(const Observation &o) {
+        const bool same=!suppressedFile.empty()&&!o.file.empty()?sameFile(suppressedFile,o.file):
+            !suppressedWindow.empty()&&suppressedWindow==o.window;
+        if(!same)return false;
+        // Learn late metadata without losing the stopped window or weakening a full path.
+        if(suppressedFile.empty()||(suppressedFile.find('/')==std::string::npos&&o.file.find('/')!=std::string::npos))suppressedFile=o.file;
+        if(!o.window.empty())suppressedWindow=o.window;
+        return true;
+    }
     void begin(double now,const Observation &o) {
         clock.start(now,o.seconds);file=o.file;window=o.window;
-        manual=held=manualDuration=false;missingAt=-1;clearCandidate();
+        manual=held=manualDuration=false;missingAt=-1;clearCandidate();clearSuppression();
     }
     void startManual(double now,int seconds) {
-        Observation o;o.seconds=seconds;begin(now,o);manual=true;suppressed.clear();
+        Observation o;o.seconds=seconds;begin(now,o);manual=true;
     }
     void stop() {
-        suppressed=file.empty()?"w:"+window:"f:"+file;
+        if(clock.active){suppressedFile=file;suppressedWindow=window;}
         clock.stop();held=manual=manualDuration=false;file.clear();window.clear();missingAt=-1;clearCandidate();
     }
     void reset(double now,int fallback) {
@@ -80,40 +91,47 @@ struct Session {
         if(!clock.active)startManual(now,fallback);else clock.toggle(now);
     }
     void choose(double now,int seconds) {clock.changeDuration(now,seconds);manualDuration=true;}
-    void observe(double now,const Observation &o) {
-        if(!monitoring||manual)return;
+    Change observe(double now,const Observation &o) {
+        if(!monitoring||manual)return Change::Unchanged;
         if(!o.present){
-            clearCandidate();suppressed.clear();
-            if(held||!clock.active)return;
+            clearCandidate();clearSuppression();
+            if(held||!clock.active)return Change::Unchanged;
             if(missingAt<0)missingAt=now;
-            if(now-missingAt>=std::max(0.8,double(grace))){stop();suppressed.clear();}
-            return;
+            if(now-missingAt>=std::max(0.8,double(grace))){stop();clearSuppression();return Change::Stopped;}
+            return Change::Unchanged;
         }
         missingAt=-1;
-        if(!suppressed.empty()) {if(suppressed==key(o))return;suppressed.clear();}
+        if(isSuppressed(o)){clearCandidate();return Change::Unchanged;}
+        // Keep suppression until a different show is stable, so one bad sample cannot release it.
         if(o.background&&o.matched&&!o.ambiguous){
-            if(held){clearCandidate();return;}
-            if(!stable("background:"+key(o),now))return;
-            wasRunning=clock.active&&!clock.paused;clock.pause(now);held=true;clearCandidate();return;
+            if(held){clearCandidate();return Change::Unchanged;}
+            if(!stable("background:"+key(o),now))return Change::Unchanged;
+            wasRunning=clock.active&&!clock.paused;clock.pause(now);held=true;clearCandidate();clearSuppression();return Change::Background;
         }
         if(held){
-            if(o.file.empty()||o.ambiguous){clearCandidate();return;}
-            if(!stable("return:"+key(o),now))return;
+            if(o.file.empty()||o.ambiguous){clearCandidate();return Change::Unchanged;}
+            if(!stable("return:"+key(o),now))return Change::Unchanged;
             if(clock.active&&sameFile(file,o.file)) {
                 held=false;window=o.window;if(wasRunning)clock.resume(now);clearCandidate();
-            }else begin(now,o);
-            return;
+                return Change::Unchanged;
+            }
+            begin(now,o);return Change::Started;
         }
-        if(!clock.active){if(stable("start:"+key(o),now))begin(now,o);return;}
-        if(o.file.empty()||o.ambiguous){clearCandidate();return;}
+        if(!clock.active){
+            if(stable("start:"+key(o),now)){begin(now,o);return Change::Started;}
+            return Change::Unchanged;
+        }
+        // Ambiguous rules still identify a new filename and carry the default duration.
+        if(o.file.empty()){clearCandidate();return Change::Unchanged;}
         if(file.empty()||sameFile(file,o.file)){
             clearCandidate();window=o.window;
             if(file.empty()||(file.find('/')==std::string::npos&&o.file.find('/')!=std::string::npos)){
                 file=o.file;if(!manualDuration)clock.changeDuration(now,o.seconds);
             }
-            return;
+            return Change::Unchanged;
         }
-        if(stable("switch:"+key(o),now))begin(now,o);
+        if(stable("switch:"+key(o),now)){begin(now,o);return Change::Started;}
+        return Change::Unchanged;
     }
 };
 }
